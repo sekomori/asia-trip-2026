@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アジア周遊旅行 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --ink:#0f0e0c; --paper:#f5f0e8; --cream:#ede7d5;
+  --gold:#c9a84c; --gold-light:#e8d08a;
+  --rust:#b84c2a; --sage:#4a7a5c; --sky:#3a6b8a;
+  --plum:#6b3a6e; --sand:#d4b896;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--paper);color:var(--ink);font-family:'Noto Sans JP',sans-serif;font-weight:300;min-height:100vh;}
+
+/* ── HEADER ── */
+header{background:var(--ink);color:var(--paper);padding:2.2rem 1.5rem 1.8rem;position:relative;overflow:hidden;}
+header::before{content:'';position:absolute;top:-50px;right:-50px;width:200px;height:200px;border:1px solid rgba(201,168,76,.2);border-radius:50%;}
+header::after{content:'';position:absolute;bottom:-40px;left:22%;width:140px;height:140px;border:1px solid rgba(201,168,76,.12);border-radius:50%;}
+.hdr{max-width:960px;margin:0 auto;position:relative;z-index:1;}
+.hdr-label{font-family:'DM Mono',monospace;font-size:.68rem;letter-spacing:.2em;color:var(--gold);text-transform:uppercase;margin-bottom:.5rem;}
+.hdr h1{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,4.5vw,2.6rem);font-weight:700;line-height:1.15;margin-bottom:.4rem;}
+.hdr h1 em{font-style:italic;color:var(--gold-light);}
+.hdr-sub{font-size:.76rem;color:rgba(245,240,232,.6);letter-spacing:.04em;margin-bottom:.9rem;}
+.route-strip{display:flex;flex-wrap:wrap;font-family:'DM Mono',monospace;font-size:.68rem;letter-spacing:.04em;color:rgba(245,240,232,.65);}
+.ra{color:var(--gold);margin:0 .4em;opacity:.6;}
+
+/* ── TABS ── */
+.tabs{background:var(--cream);border-bottom:1px solid var(--sand);position:sticky;top:0;z-index:200;}
+.tabs-inner{max-width:960px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;}
+.tabs-inner::-webkit-scrollbar{display:none;}
+.tab{padding:.8rem 1.2rem;font-size:.78rem;font-weight:500;letter-spacing:.04em;cursor:pointer;border:none;background:none;color:#888;border-bottom:2.5px solid transparent;white-space:nowrap;transition:all .18s;font-family:'Noto Sans JP',sans-serif;}
+.tab:hover{color:var(--ink);}
+.tab.active{color:var(--ink);border-bottom-color:var(--gold);font-weight:700;}
+
+/* ── MAIN ── */
+main{max-width:960px;margin:0 auto;padding:1.8rem 1rem 4rem;}
+.panel{display:none;} .panel.active{display:block;}
+
+/* ── SHARED: section title ── */
+.sec-title{font-family:'Playfair Display',serif;font-size:1.2rem;margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid var(--sand);}
+
+/* ────────────────────────────
+   SCHEDULE TAB
+──────────────────────────── */
+.timeline{position:relative;padding-left:2.4rem;}
+.timeline::before{content:'';position:absolute;left:.55rem;top:.5rem;bottom:.5rem;width:1px;background:linear-gradient(to bottom,var(--gold),var(--sand),transparent);}
+.day-card{position:relative;margin-bottom:1.4rem;opacity:0;transform:translateX(-10px);animation:slideIn .4s ease forwards;}
+@keyframes slideIn{to{opacity:1;transform:translateX(0);}}
+.day-card:nth-child(1){animation-delay:.04s;} .day-card:nth-child(2){animation-delay:.08s;}
+.day-card:nth-child(3){animation-delay:.12s;} .day-card:nth-child(4){animation-delay:.16s;}
+.day-card:nth-child(5){animation-delay:.20s;} .day-card:nth-child(6){animation-delay:.24s;}
+.day-card:nth-child(7){animation-delay:.28s;} .day-card:nth-child(8){animation-delay:.32s;}
+.day-card:nth-child(9){animation-delay:.36s;} .day-card:nth-child(10){animation-delay:.40s;}
+.day-card:nth-child(11){animation-delay:.44s;}.day-card:nth-child(12){animation-delay:.48s;}
+.day-dot{position:absolute;left:-1.95rem;top:1rem;width:10px;height:10px;border-radius:50%;background:var(--gold);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--gold);}
+.day-dot.flight{background:var(--sky);box-shadow:0 0 0 1px var(--sky);}
+.day-inner{background:white;border:1px solid rgba(0,0,0,.07);border-radius:8px;overflow:hidden;transition:box-shadow .2s;}
+.day-inner:hover{box-shadow:0 4px 18px rgba(0,0,0,.1);}
+.day-header{display:flex;align-items:stretch;}
+.day-date-block{min-width:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.75rem .4rem;text-align:center;}
+.day-date-block .mo{font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;opacity:.6;}
+.day-date-block .dt{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;line-height:1;}
+.day-date-block .dw{font-size:.6rem;opacity:.5;margin-top:2px;}
+.day-main{flex:1;padding:.8rem .9rem;border-left:1px solid rgba(0,0,0,.06);}
+.day-city{font-size:.62rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.25rem;}
+.day-action{font-size:.83rem;line-height:1.6;color:#333;}
+.day-note{margin-top:.35rem;font-size:.7rem;color:#888;font-style:italic;}
+.day-hotel{padding:.45rem .9rem;background:rgba(0,0,0,.02);border-top:1px solid rgba(0,0,0,.05);font-size:.7rem;color:#666;display:flex;align-items:center;gap:.45rem;}
+.flight-tag{display:inline-flex;align-items:center;gap:.3em;font-family:'DM Mono',monospace;font-size:.62rem;background:var(--ink);color:var(--gold-light);padding:.15em .5em;border-radius:3px;margin-top:.35rem;margin-right:.3rem;}
+.c-busan .day-date-block{background:#fff8e6;} .c-busan .day-city{color:#b07020;}
+.c-singapore .day-date-block{background:#e8f4e8;} .c-singapore .day-city{color:var(--sage);}
+.c-kl .day-date-block{background:#fff0ea;} .c-kl .day-city{color:var(--rust);}
+.c-bangkok .day-date-block{background:#eaf4f0;} .c-bangkok .day-city{color:#2a7a5a;}
+.c-pattaya .day-date-block{background:#eaf0f8;} .c-pattaya .day-city{color:var(--sky);}
+.c-samut .day-date-block{background:#f0eaf8;} .c-samut .day-city{color:var(--plum);}
+.c-taipei .day-date-block{background:#fbeaea;} .c-taipei .day-city{color:var(--rust);}
+.c-daegu .day-date-block{background:#f5f5f5;} .c-daegu .day-city{color:#555;}
+
+/* ────────────────────────────
+   TIMELINE TAB
+──────────────────────────── */
+.tl-block{margin-bottom:2.2rem;opacity:0;transform:translateY(10px);animation:rise .4s ease forwards;}
+@keyframes rise{to{opacity:1;transform:translateY(0);}}
+.tl-block:nth-child(1){animation-delay:.05s;} .tl-block:nth-child(2){animation-delay:.10s;}
+.tl-block:nth-child(3){animation-delay:.15s;} .tl-block:nth-child(4){animation-delay:.20s;}
+.tl-block:nth-child(5){animation-delay:.25s;} .tl-block:nth-child(6){animation-delay:.30s;}
+.tl-block:nth-child(7){animation-delay:.35s;} .tl-block:nth-child(8){animation-delay:.40s;}
+.tl-block:nth-child(9){animation-delay:.45s;} .tl-block:nth-child(10){animation-delay:.50s;}
+.tl-block:nth-child(11){animation-delay:.55s;}.tl-block:nth-child(12){animation-delay:.60s;}
+.tl-head{display:flex;align-items:center;gap:.7rem;margin-bottom:.7rem;}
+.tl-badge{font-family:'DM Mono',monospace;font-size:.68rem;font-weight:500;background:var(--ink);color:var(--gold-light);padding:.28em .75em;border-radius:4px;white-space:nowrap;}
+.tl-title{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;}
+.tl-ctag{margin-left:auto;font-size:.62rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:#888;white-space:nowrap;}
+.tl-summary{background:var(--ink);color:var(--paper);border-radius:7px;padding:.7rem .9rem;display:flex;flex-wrap:wrap;gap:.5rem 1.2rem;margin-bottom:.7rem;font-size:.72rem;}
+.tl-si{display:flex;align-items:center;gap:.35rem;}
+.tl-sl{opacity:.55;} .tl-sv{font-family:'DM Mono',monospace;font-weight:500;color:var(--gold-light);}
+.tl-wrap{position:relative;padding-left:4rem;}
+.tl-wrap::before{content:'';position:absolute;left:2.4rem;top:0;bottom:0;width:1px;background:linear-gradient(to bottom,var(--gold) 0%,var(--sand) 80%,transparent);}
+.tl-row{position:relative;display:grid;grid-template-columns:1fr auto;gap:.4rem;padding:.65rem .7rem .65rem 0;border-bottom:1px dashed rgba(0,0,0,.06);}
+.tl-row:last-child{border-bottom:none;}
+.tl-time{position:absolute;left:-4rem;top:.72rem;width:3.2rem;text-align:right;font-family:'DM Mono',monospace;font-size:.62rem;color:#bbb;line-height:1.2;}
+.tl-dot{position:absolute;left:-1.75rem;top:.95rem;width:10px;height:10px;border-radius:50%;border:2px solid var(--paper);box-shadow:0 0 0 1.5px currentColor;z-index:2;}
+.tl-name{font-size:.85rem;font-weight:500;margin-bottom:.15rem;}
+.tl-desc{font-size:.73rem;color:#666;line-height:1.55;}
+.tl-tip{display:inline-block;margin-top:.28rem;margin-right:.3rem;font-size:.65rem;background:var(--cream);border:1px solid var(--sand);color:#666;padding:.1em .5em;border-radius:30px;}
+.tl-tip.warn{background:#fff8e6;border-color:#e8cc88;color:#8a6010;}
+.tl-tip.good{background:#eaf6ee;border-color:#a0d4b4;color:#2d7a4a;}
+.tl-dur{font-family:'DM Mono',monospace;font-size:.63rem;font-weight:500;white-space:nowrap;align-self:start;padding:.18em .55em;border-radius:30px;margin-top:.1rem;}
+.c-mv{color:var(--sky);} .c-eat{color:var(--sage);} .c-si{color:var(--rust);} .c-rest{color:#888;} .c-ht{color:#8a6010;} .c-nt{color:var(--plum);}
+.d-mv{background:#e8f0f8;color:var(--sky);} .d-eat{background:#eaf6ee;color:var(--sage);} .d-si{background:#fbeaea;color:var(--rust);} .d-rest{background:#f0f0f0;color:#888;} .d-ht{background:#fff8e6;color:#8a6010;} .d-nt{background:#f0eaf8;color:var(--plum);}
+.tl-legend{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:1.2rem;font-size:.72rem;}
+.tl-leg{display:flex;align-items:center;gap:.35rem;color:#666;}
+.tl-ld{width:10px;height:10px;border-radius:50%;}
+
+/* ────────────────────────────
+   FLIGHTS TAB
+──────────────────────────── */
+.flight-grid{display:grid;gap:.7rem;}
+.flight-row{background:white;border:1px solid rgba(0,0,0,.07);border-radius:8px;padding:.9rem 1.1rem;display:grid;grid-template-columns:86px 1fr auto;align-items:center;gap:.9rem;opacity:0;animation:slideIn .35s ease forwards;transition:box-shadow .2s;}
+.flight-row:hover{box-shadow:0 3px 14px rgba(0,0,0,.09);}
+.flight-row:nth-child(1){animation-delay:.05s;} .flight-row:nth-child(2){animation-delay:.10s;}
+.flight-row:nth-child(3){animation-delay:.15s;} .flight-row:nth-child(4){animation-delay:.20s;}
+.flight-row:nth-child(5){animation-delay:.25s;} .flight-row:nth-child(6){animation-delay:.30s;}
+.flight-row:nth-child(7){animation-delay:.35s;} .flight-row:nth-child(8){animation-delay:.40s;}
+.f-num{font-family:'DM Mono',monospace;font-size:.88rem;font-weight:500;color:var(--sky);}
+.f-date{font-size:.63rem;color:#999;margin-top:2px;}
+.f-route{display:flex;align-items:center;gap:.55rem;}
+.f-code{font-family:'DM Mono',monospace;font-size:.95rem;font-weight:500;}
+.f-line{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.f-bar{width:100%;height:1px;background:var(--sand);position:relative;}
+.f-bar::after{content:'✈';position:absolute;right:-2px;top:-9px;font-size:.72rem;color:var(--gold);}
+.f-times{display:flex;justify-content:space-between;width:100%;font-family:'DM Mono',monospace;font-size:.62rem;color:#aaa;}
+.f-note{font-size:.7rem;color:#888;text-align:right;}
+@media(max-width:560px){.flight-row{grid-template-columns:70px 1fr;}.f-note{grid-column:1/-1;}}
+
+/* ────────────────────────────
+   HOTELS TAB
+──────────────────────────── */
+.hotel-grid{display:grid;gap:.7rem;}
+.hotel-card{background:white;border:1px solid rgba(0,0,0,.07);border-radius:8px;padding:.9rem 1.1rem;display:grid;grid-template-columns:auto 1fr;gap:.7rem 1.1rem;align-items:start;opacity:0;animation:slideIn .35s ease forwards;transition:box-shadow .2s;}
+.hotel-card:hover{box-shadow:0 3px 14px rgba(0,0,0,.09);}
+.hotel-card:nth-child(1){animation-delay:.05s;} .hotel-card:nth-child(2){animation-delay:.10s;}
+.hotel-card:nth-child(3){animation-delay:.15s;} .hotel-card:nth-child(4){animation-delay:.20s;}
+.hotel-card:nth-child(5){animation-delay:.25s;} .hotel-card:nth-child(6){animation-delay:.30s;}
+.hotel-card:nth-child(7){animation-delay:.35s;} .hotel-card:nth-child(8){animation-delay:.40s;}
+.h-nights{text-align:center;background:var(--ink);color:var(--paper);padding:.45rem .65rem;border-radius:5px;min-width:50px;}
+.h-nights .n{font-family:'Playfair Display',serif;font-size:1.35rem;line-height:1;}
+.h-nights .lb{font-size:.58rem;opacity:.6;letter-spacing:.1em;}
+.h-name{font-weight:700;font-size:.88rem;}
+.h-dates{font-size:.68rem;color:#888;margin-top:2px;}
+.h-meta{grid-column:2;display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.25rem;}
+.badge{font-size:.63rem;padding:.18em .55em;border-radius:30px;background:var(--cream);color:#555;border:1px solid var(--sand);}
+.h-booking{grid-column:2;font-family:'DM Mono',monospace;font-size:.63rem;color:#bbb;margin-top:.15rem;}
+
+/* ────────────────────────────
+   TIPS TAB
+──────────────────────────── */
+.tips-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.7rem;}
+.tip-card{background:white;border:1px solid rgba(0,0,0,.07);border-radius:8px;padding:1rem 1.1rem;opacity:0;animation:slideIn .35s ease forwards;}
+.tip-card:nth-child(1){animation-delay:.05s;} .tip-card:nth-child(2){animation-delay:.10s;}
+.tip-card:nth-child(3){animation-delay:.15s;} .tip-card:nth-child(4){animation-delay:.20s;}
+.tip-card:nth-child(5){animation-delay:.25s;}
+.tip-country{font-weight:700;font-size:.83rem;margin-bottom:.45rem;display:flex;align-items:center;gap:.4rem;}
+.tip-flag{font-size:1.05rem;}
+.tip-row{display:flex;justify-content:space-between;font-size:.73rem;padding:.28rem 0;border-bottom:1px solid rgba(0,0,0,.04);gap:.5rem;}
+.tip-row:last-child{border-bottom:none;}
+.tip-label{color:#999;flex-shrink:0;}
+.tip-val{text-align:right;color:#333;}
+
+/* ────────────────────────────
+   MAP TAB
+──────────────────────────── */
+#map{width:100%;height:62vh;min-height:440px;border-radius:10px;border:1px solid rgba(0,0,0,.1);box-shadow:0 4px 20px rgba(0,0,0,.07);}
+.map-legend{margin-top:.8rem;background:white;border:1px solid rgba(0,0,0,.07);border-radius:8px;padding:.7rem 1rem;display:flex;flex-wrap:wrap;gap:.7rem;font-size:.72rem;}
+.ml{display:flex;align-items:center;gap:.35rem;color:#555;}
+.mld{width:12px;height:12px;border-radius:50%;}
+
+/* ────────────────────────────
+   SHARE BAR
+──────────────────────────── */
+.share-bar{margin-top:1.5rem;background:white;border:1px solid rgba(0,0,0,.07);border-radius:10px;padding:.85rem 1.1rem;display:flex;flex-wrap:wrap;gap:.55rem;align-items:center;}
+.share-label{font-size:.75rem;color:#777;margin-right:.2rem;}
+.share-btn{font-family:'Noto Sans JP',sans-serif;font-size:.75rem;padding:.45em .95em;border-radius:30px;border:1px solid var(--sand);background:var(--cream);color:var(--ink);cursor:pointer;transition:all .15s;}
+.share-btn:hover,.share-btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.share-btn.primary:hover{background:var(--gold);color:var(--ink);border-color:var(--gold);}
+#copy-msg{font-size:.72rem;color:var(--sage);opacity:0;transition:opacity .2s;}
+#copy-msg.show{opacity:1;}
+
+.day-marker{background:var(--ink);color:var(--gold-light);border:2px solid var(--paper);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.72rem;box-shadow:0 2px 6px rgba(0,0,0,.3);font-family:'DM Mono',monospace;}
+.day-marker.airport{background:var(--sky);color:white;}
+.day-marker.attraction{background:var(--rust);color:white;}
+.leaflet-popup-content-wrapper{border-radius:8px;font-family:'Noto Sans JP',sans-serif;}
+.leaflet-popup-content{margin:.75rem .95rem;line-height:1.5;}
+.popup-day{font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.14em;color:var(--gold);background:var(--ink);padding:.13em .55em;border-radius:3px;display:inline-block;margin-bottom:.35rem;}
+.popup-name{font-weight:700;font-size:.9rem;margin-bottom:.25rem;}
+.popup-note{font-size:.75rem;color:#555;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr">
+    <div class="hdr-label">Asia Multi-City Trip · 2026</div>
+    <h1>アジア周遊 2026<br><em>12 Days Journey</em></h1>
+    <div class="hdr-sub">4月29日(水) → 5月10日(日) · 5カ国 · 8都市 · フライト8便</div>
+    <div class="route-strip">
+      <span>東京</span><span class="ra">→</span><span>釜山</span><span class="ra">→</span>
+      <span>シンガポール</span><span class="ra">→</span><span>クアラルンプール</span><span class="ra">→</span>
+      <span>バンコク</span><span class="ra">→</span><span>台北</span><span class="ra">→</span>
+      <span>大邱</span><span class="ra">→</span><span>東京</span>
+    </div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tabs-inner">
+    <button class="tab active" onclick="show('schedule',this)">📅 日程</button>
+    <button class="tab" onclick="show('timeline',this)">⏱ タイムライン</button>
+    <button class="tab" onclick="show('flights',this)">✈️ フライト</button>
+    <button class="tab" onclick="show('hotels',this)">🏨 ホテル</button>
+    <button class="tab" onclick="show('tips',this)">💡 現地情報</button>
+    <button class="tab" onclick="show('mapview',this)">🗺 マップ</button>
+  </div>
+</div>
+
+<main>
+
+<!-- ══════════════════════════════
+     SCHEDULE
+══════════════════════════════ -->
+<div id="schedule" class="panel active">
+<div class="timeline">
+
+  <div class="day-card c-busan">
+    <div class="day-dot flight"></div>
+    <div class="day-inner">
+      <div class="day-header">
+        <div class="day-date-block"><span class="mo">Apr</span><span class="dt">29</span><span class="dw">水</span></div>
+        <div class="day-main">
+          <div class="day-city">東京 → 釜山</div>
+          <div class="day-action">釜山到着後、ホテルへ荷物を置いて南浦洞・BIFF広場・国際市場を軽く散策。夕食は海鮮または市場グルメ。</div>
+          <span class="flight-tag">✈ BX111 · 10:55→13:15</span>
+          <div class="day-note">初日なので移動後は無理しない</div>
+        </div>
+      </div>
+      <div class="day-hotel"><span>🏨</span> Nampo Foxy Hotel</div>
+    </div>
+  </div>
+
+  <div class="day-card c-busan">
+    <div class="day-dot flight"></div>
+    <div class="day-inner">
+      <div class="day-header">
+        <div class="day-date-block"><span class="mo">Apr</span><span class="dt">30</span><span class="dw">木</span></div>
+        <div class="day-main">
+          <div class="day-city">釜山 → シンガポール</div>
+          <div class="day-action">午前はチャガルチ市場や釜山タワー周辺を散策。夕方に空港へ移動し夜便でシンガポールへ。到着後は空港内ホテルで休息。</div>
+          <span class="flight-tag">✈ 7C2661 · 17:40→23:25</span>
+          <div class="day-note">手荷物スルー有無を事前確認</div>
+        </div>
+      </div>
+      <div class="day-hotel"><span>🏨</span> AMBASSADOR TRANSIT LOUNGE（チャンギ空港T3）</div>
+    </div>
+  </div>
+
+  <div class="day-card c-singapore">
+    <div class="day-dot"></div>
+    <div class="day-inner">
+      <div class="day-header">
+        <div class="day-date-block"><span class="mo">May</span><span class="dt">01</span><span class="dw">金</span></div>
+        <div class="day-main">
+          <div class="day-city">シンガポール</div>
+          <div class="day-action">朝食後、市内へ移動しホステルへ荷物預け。Bugis・Haji Lane・Marina Bay周辺を観光。夜はホーカーズで夕食。</div>
+          <div class="day-note">暑いので昼は休憩を入れると快適</div>
+        </div>
+      </div>
+      <div class="day-hotel"><span>🏨</span> 7 Wonders Hostel @ Jalan Besar</div>
+    </div>
+  </div>
+
+  <div class="day-card c-kl">
+    <div class="day-dot flight"></div>
+    <div class="day-inner">
+      <div class="day-header">
+        <div class="day-date-block"><span class="mo">May</span><span class="dt">02</span><span class="dw">土</span></div>
+        <div class="day-main">
+          <div class="day-city">シンガポール → クアラルンプール</div>
+          <div class="day-action">チェックアウト後フライトでKLへ。到着後ホテルチェックイン。夕方からBukit BintangとJalan Alorで街歩き。</div>
+          <span class="flight-tag">✈ AK706 · 12:10→13:15</span>
+          <div class="day-note">初日は近場中心が楽</div>
+        </div>
+      </div>
+      <div class="day-hotel"><span>🏨</span> Kingston Hotel 3 @ Kuala Lumpur</div>
+    </div>
+  </div>
+
+  <div class="day-card c-kl">
+    <div class="day-dot"></div>
+    <div class="day-inner">
+      <div class="day-header">
+        <div class="day-date-block"><span class="mo">May</span><span class="dt">03</span><span class="dw">日</span></div>
+        <div class="day-main">
+          <div class="day-city">クアラルンプール</div>
+          <div class="day-action">王道観光日。ペトロナスツインタワー・KLCC公園・ショッピングモールを巡る。夜景鑑賞もおすすめ。</div>
+          <div class="day-note">人気施設は時間指定チケット確認</div>
+        </div>
+      </div>
+      <div class="day-hotel"><span>🏨</span> Kingston Hotel 3 @ Kuala Lumpur</div>
+    </div>
+  </div>
+
+  <div class="day-card c-kl">
+    <div class="day-dot"></div>
+    <div class="day-inner">
+      <div class="day-header">
+        <div class="day-date-block"><span class="mo">May</span><span class="dt">04</span><span class="dw">月</span></div>
+        <div class="day-main">
+          <div class="day-city">クアラルンプール</div>
+          <div class="day-action">午前はバトゥ洞窟または中華街散策。午後はカフェや買い物でゆったり。翌日の移動に備え早めに休む。</div>
+          <div class="day-note">詰め込みすぎない余裕日として設定</div>
+        </div>
+      </div>
+      <div class="day-hotel"><span>🏨</span> Kingston Hotel 3 @ Kuala Lumpur</div>
+    </div>
+  </div>
+
+  <div class="day-card c-bangkok">
+    <div class="day-dot flight"></div>
+    <div class="day-inner">
+      <div class="day-header">
+        <div class="day-date-block"><span class="mo">May</span><span class="dt">05</span><span class="dw">火</span></div>
+        <div class="day-main">
+          <div class="day-city">KUL → シンガポール → バンコク</div>
+          <div class="day-action">移動メインの日。午前SINへ戻り、空港または市内で休憩後、夜便でバンコクへ。到着後はドンムアン空港近くのホテルへ。</div>
+          <span class="flight-tag">✈ AK707 · 10:20→11:35</span>
+          <span class="flight-tag">✈ FD352 · 20:55→22:25</span>
+          <div class="day-note">2区間移動のため体力温存優先</div>
+        </div>
+      </div>
+      <div class="day-hotel"><span>🏨</span> 9TY Hotel (Ninety Hotel)</div>
+    </div>
+  </div>
+
+  <div class="day-card c-pattaya">
+    <div class="day-dot"></div>
+    <div class="day-inner">
+      <div class="day-header">
+        <div class="day-date-block"><span class="mo">May</span><span class="dt">06</span><span class="dw">水</span></div>
+        <div class="day-main">
+          <div class="day-city">バンコク → チョンブリー県（パタヤ）</div>
+          <div class="day-action">午前にパタヤ方面へ移動。到着後ホテルチェックイン。夕方はビーチ・周辺カフェ・ナイトマーケット散策。</div>
+          <div class="day-note">長距離移動後は近場観光が楽</div>
+        </div>
+      </div>
+      <div class="day-hotel"><span>🏨</span> パサデナロッジ</div>
+    </div>
+  </div>
+
+  <div class="day-card c-pattaya">
+    <div class="day-dot"></div>
+    <div class="day-inner">
+      <div class="day-header">
+        <div class="day-date-block"><span class="mo">May</span><span class="dt">07</span><span class="dw">木</span></div>
+        <div class="day-main">
+          <div class="day-city">チョンブリー県</div>
+          <div class="day-action">観光メイン日。サンクチュアリ・オブ・トゥルース・海沿い散策。マッサージやカフェでリラックス。</div>
+          <div class="day-note">海沿いでのんびりする1日がおすすめ</div>
+        </div>
+      </div>
+      <div class="day-hotel"><span>🏨</span> パサデナロッジ</div>
+    </div>
+  </div>
+
+  <div class="day-card c-samut">
+    <div class="day-dot"></div>
+    <div class="day-inner">
+      <div class="day-header">
+        <div class="day-date-block"><span class="mo">May</span><span class="dt">08</span><span class="dw">金</span></div>
+        <div class="day-main">
+          <div class="day-city">チョンブリー → サムットプラーカーン県</div>
+          <div class="day-action">午前に移動し空港近くホテルへ。余裕があればムアンボーラーン観光。翌朝便に備え早め就寝。</div>
+          <div class="day-note">翌朝便のため早め就寝推奨</div>
+        </div>
+      </div>
+      <div class="day-hotel"><span>🏨</span> プライ & ハーブ スワンナプーム エアポート</div>
+    </div>
+  </div>
+
+  <div class="day-card c-taipei">
+    <div class="day-dot flight"></div>
+    <div class="day-inner">
+      <div class="day-header">
+        <div class="day-date-block"><span class="mo">May</span><span class="dt">09</span><span class="dw">土</span></div>
+        <div class="day-main">
+          <div class="day-city">バンコク → 台北</div>
+          <div class="day-action">朝に空港へ移動して台北へ。到着後は台北101・西門町・夜市のいずれか1エリアを集中して楽しむ。</div>
+          <span class="flight-tag">✈ VZ568 · 09:10→13:55</span>
+          <div class="day-note">深夜便あり、夜遅くなりすぎない行動を</div>
+        </div>
+      </div>
+      <div class="day-hotel"><span>🏨</span>（未共有）</div>
+    </div>
+  </div>
+
+  <div class="day-card c-daegu">
+    <div class="day-dot flight"></div>
+    <div class="day-inner">
+      <div class="day-header">
+        <div class="day-date-block"><span class="mo">May</span><span class="dt">10</span><span class="dw">日</span></div>
+        <div class="day-main">
+          <div class="day-city">台北 → 大邱 → 東京（帰国）</div>
+          <div class="day-action">深夜便で大邱着。短時間の休憩と朝食後、帰国便へ余裕を持って移動。市内観光は最小限に。</div>
+          <span class="flight-tag">✈ TW664 · 02:00→05:25</span>
+          <span class="flight-tag">✈ TW251 · 10:40→12:45</span>
+          <div class="day-note">最終日は遅延・乗継優先で行動</div>
+        </div>
+      </div>
+      <div class="day-hotel"><span>🏠</span> 帰国</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════
+     TIMELINE
+══════════════════════════════ -->
+<div id="timeline" class="panel">
+  <div class="tl-legend">
+    <div class="tl-leg"><span class="tl-ld" style="background:var(--sky)"></span>移動</div>
+    <div class="tl-leg"><span class="tl-ld" style="background:var(--rust)"></span>観光</div>
+    <div class="tl-leg"><span class="tl-ld" style="background:var(--sage)"></span>食事</div>
+    <div class="tl-leg"><span class="tl-ld" style="background:var(--gold)"></span>ホテル</div>
+    <div class="tl-leg"><span class="tl-ld" style="background:var(--plum)"></span>夜遊び</div>
+    <div class="tl-leg"><span class="tl-ld" style="background:#888"></span>休憩</div>
+  </div>
+
+  <!-- Day 1 -->
+  <div class="tl-block">
+    <div class="tl-head"><span class="tl-badge">Day 1</span><span class="tl-title">東京 → 釜山</span><span class="tl-ctag">🇰🇷 釜山</span></div>
+    <div class="tl-summary"><div class="tl-si"><span class="tl-sl">日付</span><span class="tl-sv">4/29(水)</span></div><div class="tl-si"><span class="tl-sl">移動</span><span class="tl-sv">BX111 · NRT 10:55→PUS 13:15</span></div><div class="tl-si"><span class="tl-sl">観光</span><span class="tl-sv">約3〜4h</span></div></div>
+    <div class="tl-wrap">
+      <div class="tl-row"><div class="tl-time">08:00</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">成田空港 出発</div><div class="tl-desc">BX111 10:55発のため2時間前には空港へ。搭乗手続き・出国審査。</div></div><span class="tl-dur d-mv">2h</span></div>
+      <div class="tl-row"><div class="tl-time">13:15</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">釜山着 → Nampo Foxy Hotel</div><div class="tl-desc">地下鉄+軽電鉄で約50分。チェックイン・荷物置き。</div><span class="tl-tip">💡 空港→南浦洞: 地下鉄2号線+1号線 ₩2,000前後</span></div><span class="tl-dur d-mv">1.5h</span></div>
+      <div class="tl-row"><div class="tl-time">15:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">国際市場 散策</div><div class="tl-desc">韓国最大級の伝統市場。衣料・食料・雑貨と屋台グルメ。</div></div><span class="tl-dur d-si">1h</span></div>
+      <div class="tl-row"><div class="tl-time">16:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">BIFF広場</div><div class="tl-desc">映画スターの手形＆ホットク(シード餅)の屋台。</div><span class="tl-tip warn">⚠️ 夕方は混雑。早めに</span></div><span class="tl-dur d-si">1h</span></div>
+      <div class="tl-row"><div class="tl-time">17:30</div><div class="tl-dot c-eat" style="background:var(--sage)"></div><div><div class="tl-name">夕食 — 海鮮 or 市場グルメ</div><div class="tl-desc">チャガルチ周辺の海鮮食堂 or 国際市場内の食堂。</div></div><span class="tl-dur d-eat">1.5h</span></div>
+      <div class="tl-row"><div class="tl-time">19:30</div><div class="tl-dot c-rest" style="background:#888"></div><div><div class="tl-name">ホテル戻り・就寝</div><div class="tl-desc">翌日17:40発フライト。午前中に動けるよう早めに休む。</div></div><span class="tl-dur d-rest">—</span></div>
+    </div>
+  </div>
+
+  <!-- Day 2 -->
+  <div class="tl-block">
+    <div class="tl-head"><span class="tl-badge">Day 2</span><span class="tl-title">釜山 → シンガポール</span><span class="tl-ctag">🇸🇬 SIN着</span></div>
+    <div class="tl-summary"><div class="tl-si"><span class="tl-sl">日付</span><span class="tl-sv">4/30(木)</span></div><div class="tl-si"><span class="tl-sl">移動</span><span class="tl-sv">7C2661 · PUS 17:40→SIN 23:25</span></div><div class="tl-si"><span class="tl-sl">観光</span><span class="tl-sv">約3h(午前)</span></div></div>
+    <div class="tl-wrap">
+      <div class="tl-row"><div class="tl-time">09:00</div><div class="tl-dot c-eat" style="background:var(--sage)"></div><div><div class="tl-name">朝食 / チェックアウト</div><div class="tl-desc">近くのカフェで軽く。荷物はホテルへ一時預け。</div></div><span class="tl-dur d-eat">0.5h</span></div>
+      <div class="tl-row"><div class="tl-time">09:30</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">チャガルチ市場</div><div class="tl-desc">釜山最大の海鮮市場。1階で選んで2階で調理してもらうスタイル。</div><span class="tl-tip good">✓ 午前は空いていて狙い目</span></div><span class="tl-dur d-si">1h</span></div>
+      <div class="tl-row"><div class="tl-time">10:30</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">釜山タワー(龍頭山公園)</div><div class="tl-desc">展望台から釜山港を一望。10:00〜22:00営業。</div></div><span class="tl-dur d-si">1h</span></div>
+      <div class="tl-row"><div class="tl-time">12:00</div><div class="tl-dot c-eat" style="background:var(--sage)"></div><div><div class="tl-name">昼食 → カフェ休憩</div><div class="tl-desc">南浦洞周辺で韓国料理。その後カフェでのんびり。</div></div><span class="tl-dur d-eat">2h</span></div>
+      <div class="tl-row"><div class="tl-time">15:00</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">金海空港へ移動 → 出発</div><div class="tl-desc">地下鉄+軽電鉄で約50分。17:40発なので余裕を持って。</div><span class="tl-tip warn">⚠️ 手荷物スルー有無を事前確認</span></div><span class="tl-dur d-mv">2h</span></div>
+      <div class="tl-row"><div class="tl-time">23:25</div><div class="tl-dot c-ht" style="background:var(--gold)"></div><div><div class="tl-name">チャンギ空港T3 → 空港内泊</div><div class="tl-desc">Ambassador Transit Lounge T3チェックイン。エアサイド宿泊。</div></div><span class="tl-dur d-ht">—</span></div>
+    </div>
+  </div>
+
+  <!-- Day 3 -->
+  <div class="tl-block">
+    <div class="tl-head"><span class="tl-badge">Day 3</span><span class="tl-title">シンガポール 観光</span><span class="tl-ctag">🇸🇬 SIN</span></div>
+    <div class="tl-summary"><div class="tl-si"><span class="tl-sl">日付</span><span class="tl-sv">5/1(金)</span></div><div class="tl-si"><span class="tl-sl">天気</span><span class="tl-sv">☀️ 31°C / 昼は炎天下</span></div><div class="tl-si"><span class="tl-sl">観光</span><span class="tl-sv">約7h</span></div></div>
+    <div class="tl-wrap">
+      <div class="tl-row"><div class="tl-time">08:00</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">チャンギ → 市内(Jalan Besar)</div><div class="tl-desc">MRTで約30分・S$1.8。7 Wonders Hostelに荷物預け。</div><span class="tl-tip">💡 EZ-Linkカードを空港でチャージ</span></div><span class="tl-dur d-mv">1h</span></div>
+      <div class="tl-row"><div class="tl-time">09:30</div><div class="tl-dot c-eat" style="background:var(--sage)"></div><div><div class="tl-name">朝食 — ホーカーズ</div><div class="tl-desc">カヤトースト・コピ・チキンライスなどSG定番の朝食。</div></div><span class="tl-dur d-eat">0.5h</span></div>
+      <div class="tl-row"><div class="tl-time">10:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">Haji Lane 散策</div><div class="tl-desc">カラフルなアラブストリートの小路。壁画・個性派ショップが250mに集中。</div><span class="tl-tip good">✓ 午前は光が良く写真映え</span></div><span class="tl-dur d-si">1h</span></div>
+      <div class="tl-row"><div class="tl-time">11:30</div><div class="tl-dot c-rest" style="background:#888"></div><div><div class="tl-name">カフェ休憩(昼の暑さ回避)</div><div class="tl-desc">12〜14時は体感温度が高い。エアコンカフェで休憩。</div><span class="tl-tip warn">⚠️ 直射日光は30分でかなり消耗</span></div><span class="tl-dur d-rest">1h</span></div>
+      <div class="tl-row"><div class="tl-time">13:00</div><div class="tl-dot c-eat" style="background:var(--sage)"></div><div><div class="tl-name">昼食 — ホーカーズ</div><div class="tl-desc">ラクサ・チリクラブ・バクテーなど。現金のみの場合あり。</div></div><span class="tl-dur d-eat">1h</span></div>
+      <div class="tl-row"><div class="tl-time">15:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">Marina Bay Sands エリア</div><div class="tl-desc">湾沿い散策・Gardens by the Bayも無料エリアあり。</div><span class="tl-tip">💡 Skypark展望台(S$23)は夕方以降の夜景がおすすめ</span></div><span class="tl-dur d-si">2h</span></div>
+      <div class="tl-row"><div class="tl-time">18:00</div><div class="tl-dot c-nt" style="background:var(--plum)"></div><div><div class="tl-name">夕食 &amp; 夜景</div><div class="tl-desc">Lau Pa Sat等のホーカーズでリーズナブルに。マリーナ湾の夜景を堪能。</div></div><span class="tl-dur d-nt">2h</span></div>
+    </div>
+  </div>
+
+  <!-- Day 4 -->
+  <div class="tl-block">
+    <div class="tl-head"><span class="tl-badge">Day 4</span><span class="tl-title">SIN → クアラルンプール</span><span class="tl-ctag">🇲🇾 KL 1日目</span></div>
+    <div class="tl-summary"><div class="tl-si"><span class="tl-sl">日付</span><span class="tl-sv">5/2(土)</span></div><div class="tl-si"><span class="tl-sl">移動</span><span class="tl-sv">AK706 · SIN 12:10→KUL 13:15</span></div><div class="tl-si"><span class="tl-sl">観光</span><span class="tl-sv">約3h(夕方〜)</span></div></div>
+    <div class="tl-wrap">
+      <div class="tl-row"><div class="tl-time">10:00</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">チャンギ空港 T4へ移動</div><div class="tl-desc">AirAsiaはT4発。バスシャトルなので時間に余裕を持って。</div><span class="tl-tip warn">⚠️ T4はT1〜3とは別。バスシャトル必要</span></div><span class="tl-dur d-mv">2h</span></div>
+      <div class="tl-row"><div class="tl-time">13:15</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">KLIA2着 → Bukit Bintangへ</div><div class="tl-desc">KLIA Ekspresで KL Sentral約30分・RM55。その後Monorailで数分。</div><span class="tl-tip">💡 Touch 'n Goカードで交通が便利</span></div><span class="tl-dur d-mv">1.5h</span></div>
+      <div class="tl-row"><div class="tl-time">15:30</div><div class="tl-dot c-ht" style="background:var(--gold)"></div><div><div class="tl-name">Kingston Hotel 3 チェックイン</div><div class="tl-desc">3泊。荷物を整理してから外出。</div></div><span class="tl-dur d-ht">1h</span></div>
+      <div class="tl-row"><div class="tl-time">17:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">Bukit Bintang 散策</div><div class="tl-desc">Pavilion KLなどショッピングモール巡り。初日は近場だけで十分。</div></div><span class="tl-dur d-si">1.5h</span></div>
+      <div class="tl-row"><div class="tl-time">19:00</div><div class="tl-dot c-nt" style="background:var(--plum)"></div><div><div class="tl-name">Jalan Alor ディナー</div><div class="tl-desc">徒歩5分。焼き物・シーフード・果物ジュースが激安。19〜22時がピーク。</div><span class="tl-tip good">✓ 串焼き・マンゴースティッキーライスが◎</span></div><span class="tl-dur d-nt">1.5h</span></div>
+    </div>
+  </div>
+
+  <!-- Day 5 -->
+  <div class="tl-block">
+    <div class="tl-head"><span class="tl-badge">Day 5</span><span class="tl-title">KL 王道観光</span><span class="tl-ctag">🇲🇾 KL 2日目</span></div>
+    <div class="tl-summary"><div class="tl-si"><span class="tl-sl">日付</span><span class="tl-sv">5/3(日)</span></div><div class="tl-si"><span class="tl-sl">要予約</span><span class="tl-sv">ペトロナス展望チケット 事前予約推奨</span></div><div class="tl-si"><span class="tl-sl">観光</span><span class="tl-sv">約8h</span></div></div>
+    <div class="tl-wrap">
+      <div class="tl-row"><div class="tl-time">09:00</div><div class="tl-dot c-eat" style="background:var(--sage)"></div><div><div class="tl-name">朝食</div><div class="tl-desc">ナシレマ(マレー飯)やカフェで。</div></div><span class="tl-dur d-eat">1h</span></div>
+      <div class="tl-row"><div class="tl-time">10:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">ペトロナスツインタワー</div><div class="tl-desc">スカイブリッジ(41F)と展望台(86F)。事前オンライン予約で確実に入場。</div><span class="tl-tip warn">⚠️ 月曜休館。petronas-twintwers.com.my で要予約</span></div><span class="tl-dur d-si">2h</span></div>
+      <div class="tl-row"><div class="tl-time">12:00</div><div class="tl-dot c-eat" style="background:var(--sage)"></div><div><div class="tl-name">KLCC公園 &amp; Suria KLCCで昼食</div><div class="tl-desc">ツインタワー直結モールのフードコートで昼食。公園の噴水ショーは夜。</div></div><span class="tl-dur d-eat">1.5h</span></div>
+      <div class="tl-row"><div class="tl-time">14:00</div><div class="tl-dot c-rest" style="background:#888"></div><div><div class="tl-name">カフェ休憩</div><div class="tl-desc">14〜16時は特に暑い。モール内カフェで休息。</div></div><span class="tl-dur d-rest">1h</span></div>
+      <div class="tl-row"><div class="tl-time">16:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">KLタワー展望 or 周辺散策</div><div class="tl-desc">別角度でKLを一望。Grabで5分。</div><span class="tl-tip">💡 Grab(タクシーアプリ)が安くて便利</span></div><span class="tl-dur d-si">1.5h</span></div>
+      <div class="tl-row"><div class="tl-time">20:00</div><div class="tl-dot c-nt" style="background:var(--plum)"></div><div><div class="tl-name">KLCC噴水ショー &amp; 夕食</div><div class="tl-desc">噴水ショーは20:00/21:00(無料)。その後Jalan Alorで夕食。</div></div><span class="tl-dur d-nt">2h</span></div>
+    </div>
+  </div>
+
+  <!-- Day 6 -->
+  <div class="tl-block">
+    <div class="tl-head"><span class="tl-badge">Day 6</span><span class="tl-title">KL ゆったり日</span><span class="tl-ctag">🇲🇾 KL 3日目</span></div>
+    <div class="tl-summary"><div class="tl-si"><span class="tl-sl">日付</span><span class="tl-sv">5/4(月)</span></div><div class="tl-si"><span class="tl-sl">注意</span><span class="tl-sv">ペトロナス月曜休 / 翌日は長距離移動</span></div><div class="tl-si"><span class="tl-sl">観光</span><span class="tl-sv">約5〜6h</span></div></div>
+    <div class="tl-wrap">
+      <div class="tl-row"><div class="tl-time">08:30</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">バトゥ洞窟へ移動</div><div class="tl-desc">KL SentralからKTMコミューターで約30分・RM2.6。</div><span class="tl-tip good">✓ 9時前着で混雑回避・涼しい</span></div><span class="tl-dur d-mv">0.5h</span></div>
+      <div class="tl-row"><div class="tl-time">09:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">バトゥ洞窟</div><div class="tl-desc">42.7m黄金ムルガン像と272段レインボー階段。洞窟内は幻想的。無料。猿に注意。</div><span class="tl-tip warn">⚠️ 短パンはサロン着用必要(無料貸出あり)</span></div><span class="tl-dur d-si">2h</span></div>
+      <div class="tl-row"><div class="tl-time">12:30</div><div class="tl-dot c-eat" style="background:var(--sage)"></div><div><div class="tl-name">中華街(Petaling Street)で昼食</div><div class="tl-desc">Bakuteh・点心・豆腐花など。アーケードで涼しい。</div></div><span class="tl-dur d-eat">1h</span></div>
+      <div class="tl-row"><div class="tl-time">14:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">Petaling Street 散策 &amp; 買い物</div><div class="tl-desc">雑貨・土産・果物屋台。交渉が楽しい市場。</div></div><span class="tl-dur d-si">1h</span></div>
+      <div class="tl-row"><div class="tl-time">16:00</div><div class="tl-dot c-rest" style="background:#888"></div><div><div class="tl-name">ホテル戻り・荷造り</div><div class="tl-desc">翌日10:20発のため荷物は今夜まとめておく。</div></div><span class="tl-dur d-rest">1h</span></div>
+      <div class="tl-row"><div class="tl-time">19:00</div><div class="tl-dot c-eat" style="background:var(--sage)"></div><div><div class="tl-name">夕食 — KL最後の食事</div><div class="tl-desc">食べ損ねたマレー料理で締めくくり。</div></div><span class="tl-dur d-eat">1.5h</span></div>
+    </div>
+  </div>
+
+  <!-- Day 7 -->
+  <div class="tl-block">
+    <div class="tl-head"><span class="tl-badge">Day 7</span><span class="tl-title">KL → SIN → バンコク 移動日</span><span class="tl-ctag">🇹🇭 BKK着</span></div>
+    <div class="tl-summary"><div class="tl-si"><span class="tl-sl">日付</span><span class="tl-sv">5/5(火)</span></div><div class="tl-si"><span class="tl-sl">移動①</span><span class="tl-sv">AK707 KUL 10:20→SIN 11:35</span></div><div class="tl-si"><span class="tl-sl">移動②</span><span class="tl-sv">FD352 SIN 20:55→DMK 22:25</span></div></div>
+    <div class="tl-wrap">
+      <div class="tl-row"><div class="tl-time">07:30</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">KLIA2へ移動・出発</div><div class="tl-desc">KLIA Ekspresで45〜50分。10:20発なので8時前に出発。</div></div><span class="tl-dur d-mv">2.5h</span></div>
+      <div class="tl-row"><div class="tl-time">11:35</div><div class="tl-dot c-rest" style="background:#888"></div><div><div class="tl-name">チャンギ空港 乗継(約9時間)</div><div class="tl-desc">FD352は20:55発。Jewel Changi(屋内滝)で過ごすか、市内に出るか選択。</div><span class="tl-tip">💡 Jewel Changi: 屋内40m滝・ショッピング施設が空港内にあり</span><span class="tl-tip">💡 市内: MRTでBugis/Orchardへ片道30分・往復S$4前後</span></div><span class="tl-dur d-rest">9h</span></div>
+      <div class="tl-row"><div class="tl-time">22:25</div><div class="tl-dot c-ht" style="background:var(--gold)"></div><div><div class="tl-name">ドンムアン着 → 9TY Hotel</div><div class="tl-desc">空港から徒歩圏内。翌朝パタヤへ移動するので早めに就寝。</div></div><span class="tl-dur d-ht">—</span></div>
+    </div>
+  </div>
+
+  <!-- Day 8 -->
+  <div class="tl-block">
+    <div class="tl-head"><span class="tl-badge">Day 8</span><span class="tl-title">バンコク → パタヤ</span><span class="tl-ctag">🇹🇭 パタヤ 1日目</span></div>
+    <div class="tl-summary"><div class="tl-si"><span class="tl-sl">日付</span><span class="tl-sv">5/6(水)</span></div><div class="tl-si"><span class="tl-sl">移動</span><span class="tl-sv">DMK→パタヤ バス約2h / THB130〜</span></div><div class="tl-si"><span class="tl-sl">観光</span><span class="tl-sv">約4h(夕方〜)</span></div></div>
+    <div class="tl-wrap">
+      <div class="tl-row"><div class="tl-time">09:00</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">パタヤへ移動</div><div class="tl-desc">Bell Travel Serviceのバスで約2h・THB130。Grabだと1,200〜1,500THB。</div><span class="tl-tip">💡 Bell Travel: ドンムアン1Fから出発</span></div><span class="tl-dur d-mv">2h</span></div>
+      <div class="tl-row"><div class="tl-time">11:30</div><div class="tl-dot c-ht" style="background:var(--gold)"></div><div><div class="tl-name">パサデナロッジ チェックイン</div><div class="tl-desc">2泊。荷物を置いてビーチ方面へ。</div></div><span class="tl-dur d-ht">0.5h</span></div>
+      <div class="tl-row"><div class="tl-time">12:30</div><div class="tl-dot c-eat" style="background:var(--sage)"></div><div><div class="tl-name">昼食 — ローカル食堂</div><div class="tl-desc">パッタイ・ガパオ・ソムタムなどタイ料理。</div></div><span class="tl-dur d-eat">1h</span></div>
+      <div class="tl-row"><div class="tl-time">14:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">パタヤビーチ &amp; マリンアクティビティ</div><div class="tl-desc">4kmのビーチ散策。バナナボート・パラセイリングも。</div><span class="tl-tip">💡 ソンテウ(乗合バス)で移動が安い</span></div><span class="tl-dur d-si">2h</span></div>
+      <div class="tl-row"><div class="tl-time">17:00</div><div class="tl-dot c-rest" style="background:#888"></div><div><div class="tl-name">タイ古式マッサージ</div><div class="tl-desc">1時間 約200〜300THB。パタヤは安くて質も良い。</div></div><span class="tl-dur d-rest">1h</span></div>
+      <div class="tl-row"><div class="tl-time">19:00</div><div class="tl-dot c-nt" style="background:var(--plum)"></div><div><div class="tl-name">ナイトマーケット &amp; 夕食</div><div class="tl-desc">Walking Street周辺のナイトマーケットを散策。</div></div><span class="tl-dur d-nt">2h</span></div>
+    </div>
+  </div>
+
+  <!-- Day 9 -->
+  <div class="tl-block">
+    <div class="tl-head"><span class="tl-badge">Day 9</span><span class="tl-title">パタヤ 観光メイン</span><span class="tl-ctag">🇹🇭 パタヤ 2日目</span></div>
+    <div class="tl-summary"><div class="tl-si"><span class="tl-sl">日付</span><span class="tl-sv">5/7(木)</span></div><div class="tl-si"><span class="tl-sl">目玉</span><span class="tl-sv">Sanctuary of Truth 8:00〜開場</span></div><div class="tl-si"><span class="tl-sl">観光</span><span class="tl-sv">約7h</span></div></div>
+    <div class="tl-wrap">
+      <div class="tl-row"><div class="tl-time">08:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">Sanctuary of Truth</div><div class="tl-desc">釘を一本も使わない高さ105mの木造神殿。東洋哲学を体現した圧巻の建築。彫刻師が今も制作中。</div><span class="tl-tip good">✓ 開場直後が空いていて光も美しい</span><span class="tl-tip warn">⚠️ 入場料500THB。露出の多い服装NG</span></div><span class="tl-dur d-si">2h</span></div>
+      <div class="tl-row"><div class="tl-time">10:30</div><div class="tl-dot c-eat" style="background:var(--sage)"></div><div><div class="tl-name">海沿いカフェでブランチ</div><div class="tl-desc">Sanctuary近くの海沿いカフェでのんびり。</div></div><span class="tl-dur d-eat">1h</span></div>
+      <div class="tl-row"><div class="tl-time">12:00</div><div class="tl-dot c-rest" style="background:#888"></div><div><div class="tl-name">プール or ビーチでリラックス</div><div class="tl-desc">暑い昼はホテルプールや日陰でのんびり。リゾート気分を満喫。</div></div><span class="tl-dur d-rest">2h</span></div>
+      <div class="tl-row"><div class="tl-time">15:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">周辺カフェ &amp; おみやげ買い物</div><div class="tl-desc">タイのお菓子やスパグッズはコスパ良し。</div></div><span class="tl-dur d-si">1.5h</span></div>
+      <div class="tl-row"><div class="tl-time">17:30</div><div class="tl-dot c-rest" style="background:#888"></div><div><div class="tl-name">マッサージ &amp; 回復</div><div class="tl-desc">タイ古式 or アロマ1〜2時間。翌日の移動に備えてしっかり回復。</div></div><span class="tl-dur d-rest">1.5h</span></div>
+      <div class="tl-row"><div class="tl-time">20:00</div><div class="tl-dot c-eat" style="background:var(--sage)"></div><div><div class="tl-name">夕食 → 早めに就寝</div><div class="tl-desc">翌日は移動日。荷造りを済ませて早く休む。</div></div><span class="tl-dur d-eat">1h</span></div>
+    </div>
+  </div>
+
+  <!-- Day 10 -->
+  <div class="tl-block">
+    <div class="tl-head"><span class="tl-badge">Day 10</span><span class="tl-title">パタヤ → サムットプラーカーン</span><span class="tl-ctag">🇹🇭 空港前泊</span></div>
+    <div class="tl-summary"><div class="tl-si"><span class="tl-sl">日付</span><span class="tl-sv">5/8(金)</span></div><div class="tl-si"><span class="tl-sl">翌朝便</span><span class="tl-sv">VZ568 BKK 09:10→TPE 13:55</span></div><div class="tl-si"><span class="tl-sl">観光</span><span class="tl-sv">余裕次第</span></div></div>
+    <div class="tl-wrap">
+      <div class="tl-row"><div class="tl-time">09:00</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">チェックアウト → スワンナプーム方面へ</div><div class="tl-desc">バス or Grabで約1.5〜2時間。渋滞に注意。</div></div><span class="tl-dur d-mv">2h</span></div>
+      <div class="tl-row"><div class="tl-time">11:30</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">ムアンボーラーン(余裕があれば)</div><div class="tl-desc">タイ全土の遺跡レプリカが広大な敷地に。電動カートで効率よく巡れる。</div><span class="tl-tip">💡 9:00〜19:00営業 / 最低2〜3h確保が理想</span></div><span class="tl-dur d-si">3h</span></div>
+      <div class="tl-row"><div class="tl-time">15:00</div><div class="tl-dot c-ht" style="background:var(--gold)"></div><div><div class="tl-name">プライ&ハーブ スワンナプーム チェックイン</div><div class="tl-desc">翌朝VZ568(09:10発)のため、07:00には空港着が必要。</div><span class="tl-tip warn">⚠️ 翌朝は早起き確定。夕食後すぐ寝る</span></div><span class="tl-dur d-ht">—</span></div>
+    </div>
+  </div>
+
+  <!-- Day 11 -->
+  <div class="tl-block">
+    <div class="tl-head"><span class="tl-badge">Day 11</span><span class="tl-title">バンコク → 台北</span><span class="tl-ctag">🇹🇼 台北</span></div>
+    <div class="tl-summary"><div class="tl-si"><span class="tl-sl">日付</span><span class="tl-sv">5/9(土)</span></div><div class="tl-si"><span class="tl-sl">移動</span><span class="tl-sv">VZ568 BKK 09:10→TPE 13:55</span></div><div class="tl-si"><span class="tl-sl">観光</span><span class="tl-sv">約6h(昼〜深夜)</span></div></div>
+    <div class="tl-wrap">
+      <div class="tl-row"><div class="tl-time">06:30</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">スワンナプーム空港へ</div><div class="tl-desc">09:10発 → 07:00には空港着。ホテルからシャトルまたはタクシー。</div></div><span class="tl-dur d-mv">0.5h</span></div>
+      <div class="tl-row"><div class="tl-time">13:55</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">桃園空港着 → 台北市内へ</div><div class="tl-desc">MRT桃園空港線で台北メインステーションまで約35分・NT$160。</div><span class="tl-tip">💡 EasyCard(悠遊卡)をMRT駅で購入</span></div><span class="tl-dur d-mv">1.5h</span></div>
+      <div class="tl-row"><div class="tl-time">16:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">台北101</div><div class="tl-desc">展望台(89F)NT$600前後。夕暮れ時が美しい。直下のショッピングモールも。</div></div><span class="tl-dur d-si">1.5h</span></div>
+      <div class="tl-row"><div class="tl-time">18:00</div><div class="tl-dot c-si" style="background:var(--rust)"></div><div><div class="tl-name">西門町 散策</div><div class="tl-desc">台湾若者文化の中心地。ストリートフード・ファッション・エンタメ。</div></div><span class="tl-dur d-si">1.5h</span></div>
+      <div class="tl-row"><div class="tl-time">20:00</div><div class="tl-dot c-nt" style="background:var(--plum)"></div><div><div class="tl-name">士林夜市</div><div class="tl-desc">MRT剣潭駅すぐ。大鶏排・臭豆腐・バブルティー。20〜23時がピーク。</div><span class="tl-tip warn">⚠️ 翌02:00発 TW664のため23時には空港へ向かう</span></div><span class="tl-dur d-nt">2h</span></div>
+      <div class="tl-row"><div class="tl-time">23:00</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">桃園空港へ移動</div><div class="tl-desc">MRT終電に注意(23:37頃)。タクシーなら約40分・NT$1,200前後。</div><span class="tl-tip warn">⚠️ 00:00には空港着で</span></div><span class="tl-dur d-mv">1h</span></div>
+    </div>
+  </div>
+
+  <!-- Day 12 -->
+  <div class="tl-block">
+    <div class="tl-head"><span class="tl-badge">Day 12</span><span class="tl-title">台北 → 大邱 → 東京 帰国</span><span class="tl-ctag">🇯🇵 帰国</span></div>
+    <div class="tl-summary"><div class="tl-si"><span class="tl-sl">日付</span><span class="tl-sv">5/10(日)</span></div><div class="tl-si"><span class="tl-sl">移動①</span><span class="tl-sv">TW664 TPE 02:00→TAE 05:25</span></div><div class="tl-si"><span class="tl-sl">移動②</span><span class="tl-sv">TW251 TAE 10:40→NRT 12:45</span></div></div>
+    <div class="tl-wrap">
+      <div class="tl-row"><div class="tl-time">02:00</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">桃園空港 出発(深夜便)</div><div class="tl-desc">TW664で大邱へ。機内で仮眠できると◎。</div></div><span class="tl-dur d-mv">3h</span></div>
+      <div class="tl-row"><div class="tl-time">05:25</div><div class="tl-dot c-rest" style="background:#888"></div><div><div class="tl-name">大邱国際空港 着 — 乗継待ち</div><div class="tl-desc">次便TW251は10:40発。約5時間の待ち時間。空港内で仮眠・朝食・土産購入。</div><span class="tl-tip">💡 小さい空港だがコンビニ・カフェあり。清潔で過ごしやすい</span></div><span class="tl-dur d-rest">5h</span></div>
+      <div class="tl-row"><div class="tl-time">10:40</div><div class="tl-dot c-mv" style="background:var(--sky)"></div><div><div class="tl-name">大邱 → 成田 出発</div><div class="tl-desc">TW251。フライト約2時間。</div></div><span class="tl-dur d-mv">2h</span></div>
+      <div class="tl-row"><div class="tl-time">12:45</div><div class="tl-dot c-ht" style="background:var(--gold)"></div><div><div class="tl-name">成田空港 着 🎉 旅行完了！</div><div class="tl-desc">入国審査・荷物受取。5カ国・8都市・25スポットを制覇。お疲れさまでした！</div></div><span class="tl-dur d-ht">—</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════
+     FLIGHTS
+══════════════════════════════ -->
+<div id="flights" class="panel">
+  <div class="sec-title">フライト一覧 — 全8便</div>
+  <div class="flight-grid">
+    <div class="flight-row">
+      <div><div class="f-num">BX111</div><div class="f-date">4月29日(水)</div></div>
+      <div class="f-route"><span class="f-code">NRT</span><div class="f-line"><div class="f-bar"></div><div class="f-times"><span>10:55</span><span>13:15</span></div></div><span class="f-code">PUS</span></div>
+      <div class="f-note">釜山へ</div>
+    </div>
+    <div class="flight-row">
+      <div><div class="f-num">7C2661</div><div class="f-date">4月30日(木)</div></div>
+      <div class="f-route"><span class="f-code">PUS</span><div class="f-line"><div class="f-bar"></div><div class="f-times"><span>17:40</span><span>23:25</span></div></div><span class="f-code">SIN</span></div>
+      <div class="f-note">夜着・空港泊</div>
+    </div>
+    <div class="flight-row">
+      <div><div class="f-num">AK706</div><div class="f-date">5月2日(土)</div></div>
+      <div class="f-route"><span class="f-code">SIN</span><div class="f-line"><div class="f-bar"></div><div class="f-times"><span>12:10</span><span>13:15</span></div></div><span class="f-code">KUL</span></div>
+      <div class="f-note">KLへ移動</div>
+    </div>
+    <div class="flight-row">
+      <div><div class="f-num">AK707</div><div class="f-date">5月5日(火)</div></div>
+      <div class="f-route"><span class="f-code">KUL</span><div class="f-line"><div class="f-bar"></div><div class="f-times"><span>10:20</span><span>11:35</span></div></div><span class="f-code">SIN</span></div>
+      <div class="f-note">乗継で戻る</div>
+    </div>
+    <div class="flight-row">
+      <div><div class="f-num">FD352</div><div class="f-date">5月5日(火)</div></div>
+      <div class="f-route"><span class="f-code">SIN</span><div class="f-line"><div class="f-bar"></div><div class="f-times"><span>20:55</span><span>22:25</span></div></div><span class="f-code">DMK</span></div>
+      <div class="f-note">同日夜バンコク</div>
+    </div>
+    <div class="flight-row">
+      <div><div class="f-num">VZ568</div><div class="f-date">5月9日(土)</div></div>
+      <div class="f-route"><span class="f-code">BKK</span><div class="f-line"><div class="f-bar"></div><div class="f-times"><span>09:10</span><span>13:55</span></div></div><span class="f-code">TPE</span></div>
+      <div class="f-note">台北へ</div>
+    </div>
+    <div class="flight-row">
+      <div><div class="f-num">TW664</div><div class="f-date">5月10日(日)</div></div>
+      <div class="f-route"><span class="f-code">TPE</span><div class="f-line"><div class="f-bar"></div><div class="f-times"><span>02:00</span><span>05:25</span></div></div><span class="f-code">TAE</span></div>
+      <div class="f-note">深夜便</div>
+    </div>
+    <div class="flight-row">
+      <div><div class="f-num">TW251</div><div class="f-date">5月10日(日)</div></div>
+      <div class="f-route"><span class="f-code">TAE</span><div class="f-line"><div class="f-bar"></div><div class="f-times"><span>10:40</span><span>12:45</span></div></div><span class="f-code">NRT</span></div>
+      <div class="f-note">🇯🇵 帰国</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     HOTELS
+══════════════════════════════ -->
+<div id="hotels" class="panel">
+  <div class="sec-title">ホテル情報 — 7件</div>
+  <div class="hotel-grid">
+
+    <div class="hotel-card">
+      <div class="h-nights"><div class="n">1</div><div class="lb">泊</div></div>
+      <div><div class="h-name">Nampo Foxy Hotel</div><div class="h-dates">4月29日〜30日 · 釜山・韓国</div></div>
+      <div class="h-meta"><span class="badge">CI 17:00〜</span><span class="badge">CO 11:00〜12:00</span><span class="badge">Wi-Fi（共用）</span><span class="badge">手荷物預かり</span></div>
+      <div class="h-booking">予約番号: 未確認</div>
+    </div>
+
+    <div class="hotel-card">
+      <div class="h-nights"><div class="n">1</div><div class="lb">泊</div></div>
+      <div><div class="h-name">AMBASSADOR TRANSIT LOUNGE</div><div class="h-dates">4月30日〜5月1日 · チャンギ空港T3 エアサイド</div></div>
+      <div class="h-meta"><span class="badge">CI 07:00〜19:00</span><span class="badge">CO 12:00まで</span><span class="badge">24hフロント</span><span class="badge">駐車場</span></div>
+      <div class="h-booking">予約番号: 1385431792113154</div>
+    </div>
+
+    <div class="hotel-card">
+      <div class="h-nights"><div class="n">1</div><div class="lb">泊</div></div>
+      <div><div class="h-name">7 Wonders Hostel @ Jalan Besar</div><div class="h-dates">5月1日〜2日 · シンガポール</div></div>
+      <div class="h-meta"><span class="badge">CI 15:00〜</span><span class="badge">CO 11:30まで</span><span class="badge">Wi-Fi（共用）</span><span class="badge">送迎あり（要確認）</span><span class="badge">手荷物預かり</span></div>
+      <div class="h-booking">予約番号: 138543179121616</div>
+    </div>
+
+    <div class="hotel-card">
+      <div class="h-nights"><div class="n">3</div><div class="lb">泊</div></div>
+      <div><div class="h-name">Kingston Hotel 3 @ Kuala Lumpur</div><div class="h-dates">5月2日〜5日 · クアラルンプール・マレーシア</div></div>
+      <div class="h-meta"><span class="badge">CI 15:00〜</span><span class="badge">CO 11:00まで</span><span class="badge">24hフロント</span><span class="badge">手荷物預かり</span></div>
+      <div class="h-booking">予約番号: 1385432819083460</div>
+    </div>
+
+    <div class="hotel-card">
+      <div class="h-nights"><div class="n">1</div><div class="lb">泊</div></div>
+      <div><div class="h-name">9TY Hotel (Ninety Hotel)</div><div class="h-dates">5月5日〜6日 · ドンムアン・バンコク・タイ</div></div>
+      <div class="h-meta"><span class="badge">CI 13:00〜</span><span class="badge">CO 12:00まで</span><span class="badge">24hフロント</span><span class="badge">無料Wi-Fi</span></div>
+      <div class="h-booking">予約番号: 1385431791691775</div>
+    </div>
+
+    <div class="hotel-card">
+      <div class="h-nights"><div class="n">2</div><div class="lb">泊</div></div>
+      <div><div class="h-name">パサデナロッジ</div><div class="h-dates">5月6日〜8日 · チョンブリー県・タイ</div></div>
+      <div class="h-meta"><span class="badge">CI 14:00〜</span><span class="badge">CO 12:00まで</span><span class="badge">24hフロント</span><span class="badge">送迎あり（要問合せ）</span><span class="badge">手荷物預かり</span></div>
+      <div class="h-booking">予約番号: 1385431793078828</div>
+    </div>
+
+    <div class="hotel-card">
+      <div class="h-nights"><div class="n">1</div><div class="lb">泊</div></div>
+      <div><div class="h-name">プライ & ハーブ スワンナプーム エアポート</div><div class="h-dates">5月8日〜9日 · サムットプラーカーン県・タイ</div></div>
+      <div class="h-meta"><span class="badge">CI 14:00〜</span><span class="badge">CO 12:00まで</span><span class="badge">24hフロント</span><span class="badge">手荷物預かり</span></div>
+      <div class="h-booking">予約番号: 1385431793037664</div>
+    </div>
+
+    <div class="hotel-card">
+      <div class="h-nights" style="background:#bbb"><div class="n">—</div><div class="lb">泊</div></div>
+      <div><div class="h-name">台北 / 大邱</div><div class="h-dates">5月9日〜10日</div></div>
+      <div class="h-meta"><span class="badge">宿泊情報未共有</span></div>
+      <div class="h-booking">深夜便で大邱へ / 同日帰国</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     TIPS
+══════════════════════════════ -->
+<div id="tips" class="panel">
+  <div class="sec-title">現地情報 — 決済 &amp; 交通</div>
+  <div class="tips-grid">
+
+    <div class="tip-card">
+      <div class="tip-country"><span class="tip-flag">🇰🇷</span> 韓国（釜山・大邱）</div>
+      <div class="tip-row"><span class="tip-label">主力決済</span><span class="tip-val">クレジットカード</span></div>
+      <div class="tip-row"><span class="tip-label">現金</span><span class="tip-val">少額推奨（市場・屋台）</span></div>
+      <div class="tip-row"><span class="tip-label">交通</span><span class="tip-val">地下鉄 / 空港軽電鉄</span></div>
+      <div class="tip-row"><span class="tip-label">メモ</span><span class="tip-val">IC交通カード用に現金少々</span></div>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-country"><span class="tip-flag">🇸🇬</span> シンガポール</div>
+      <div class="tip-row"><span class="tip-label">主力決済</span><span class="tip-val">クレカ / タッチ決済</span></div>
+      <div class="tip-row"><span class="tip-label">現金</span><span class="tip-val">少額で十分</span></div>
+      <div class="tip-row"><span class="tip-label">交通</span><span class="tip-val">MRT（空港→市内 約40〜55分）</span></div>
+      <div class="tip-row"><span class="tip-label">メモ</span><span class="tip-val">ホーカーズは一部現金のみ</span></div>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-country"><span class="tip-flag">🇲🇾</span> マレーシア（KL）</div>
+      <div class="tip-row"><span class="tip-label">主力決済</span><span class="tip-val">クレカ ＋ 現金の併用</span></div>
+      <div class="tip-row"><span class="tip-label">現金</span><span class="tip-val">屋台・ローカル食堂で必須</span></div>
+      <div class="tip-row"><span class="tip-label">交通</span><span class="tip-val">KLIA Ekspres → KL Sentral</span></div>
+      <div class="tip-row"><span class="tip-label">メモ</span><span class="tip-val">大型モールはカード可</span></div>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-country"><span class="tip-flag">🇹🇭</span> タイ（バンコク・パタヤ等）</div>
+      <div class="tip-row"><span class="tip-label">主力決済</span><span class="tip-val">現金 ＋ クレカの併用</span></div>
+      <div class="tip-row"><span class="tip-label">現金</span><span class="tip-val">重要（屋台・ローカル交通）</span></div>
+      <div class="tip-row"><span class="tip-label">交通</span><span class="tip-val">タクシー / Grab推奨</span></div>
+      <div class="tip-row"><span class="tip-label">メモ</span><span class="tip-val">ローカル店は現金優勢</span></div>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-country"><span class="tip-flag">🇹🇼</span> 台湾（台北）</div>
+      <div class="tip-row"><span class="tip-label">主力決済</span><span class="tip-val">クレカ ＋ 現金推奨</span></div>
+      <div class="tip-row"><span class="tip-label">現金</span><span class="tip-val">夜市・小店・一部交通</span></div>
+      <div class="tip-row"><span class="tip-label">交通</span><span class="tip-val">EasyCardが便利</span></div>
+      <div class="tip-row"><span class="tip-label">メモ</span><span class="tip-val">空港で少額両替しておくと安心</span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MAP
+══════════════════════════════ -->
+<div id="mapview" class="panel">
+  <div id="map"></div>
+  <div class="map-legend">
+    <div class="ml"><span class="mld" style="background:var(--sky)"></span>空港・移動</div>
+    <div class="ml"><span class="mld" style="background:var(--gold)"></span>滞在拠点</div>
+    <div class="ml"><span class="mld" style="background:var(--rust)"></span>観光スポット</div>
+    <div style="margin-left:auto;font-size:.68rem;color:#aaa;">📌 ピンをタップで詳細</div>
+  </div>
+  <div class="share-bar">
+    <span class="share-label">🔗 友達と共有</span>
+    <button class="share-btn primary" onclick="shareNative()">共有する</button>
+    <button class="share-btn" onclick="copyLink()">リンクをコピー</button>
+    <button class="share-btn" onclick="window.print()">印刷 / PDF保存</button>
+    <span id="copy-msg">✓ コピーしました</span>
+  </div>
+</div>
+
+</main>
+
+<script>
+// ── TAB SWITCH ──
+function show(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  // re-trigger animations
+  document.querySelectorAll(`#${id} .day-card,#${id} .tl-block,#${id} .flight-row,#${id} .hotel-card,#${id} .tip-card`).forEach(el => {
+    el.style.animation = 'none'; el.offsetHeight; el.style.animation = '';
+  });
+  if (id === 'mapview' && !window._mapInited) initMap();
+}
+
+// ── MAP ──
+const pins = [
+  {day:"Day 1/12",type:"airport",lat:35.770178,lng:140.3843215,name:"成田空港(NRT)",note:"Day 1 出発(BX111) / Day 12 帰国(TW251 12:45着)"},
+  {day:"Day 1-2",type:"hotel",lat:35.0974206,lng:129.0303631,name:"南浦洞(釜山拠点)",note:"Nampo Foxy Hotel泊。釜山の中心地。"},
+  {day:"Day 1",type:"attraction",lat:35.098243,lng:129.029212,name:"BIFF広場",note:"屋台グルメ・映画スターの手形。"},
+  {day:"Day 1",type:"attraction",lat:35.1013575,lng:129.0281978,name:"国際市場",note:"韓国最大級の伝統市場。"},
+  {day:"Day 2",type:"attraction",lat:35.0966339,lng:129.0307965,name:"チャガルチ市場",note:"午前 — 釜山最大の海鮮市場。"},
+  {day:"Day 2",type:"attraction",lat:35.1011934,lng:129.0323676,name:"釜山タワー",note:"午前 — 龍頭山公園展望台。"},
+  {day:"Day 2",type:"airport",lat:1.358604,lng:103.98994359999999,name:"チャンギ空港T3(空港泊)",note:"Ambassador Transit Lounge泊。23:25着。"},
+  {day:"Day 3",type:"hotel",lat:1.3001991,lng:103.85520149999999,name:"Bugis(SIN拠点)",note:"7 Wonders Hostel泊。"},
+  {day:"Day 3",type:"attraction",lat:1.3007065,lng:103.8591356,name:"Haji Lane",note:"カラフルな小路。ショップ・バー・カフェ。"},
+  {day:"Day 3",type:"attraction",lat:1.2837575,lng:103.8591065,name:"Marina Bay Sands",note:"夜景も絶景。無限プールが有名。"},
+  {day:"Day 4-6",type:"hotel",lat:3.1467855,lng:101.7113043,name:"Bukit Bintang(KL拠点)",note:"Kingston Hotel 3(3泊)。ショッピング街の中心。"},
+  {day:"Day 4",type:"attraction",lat:3.1459204,lng:101.7089731,name:"Jalan Alor",note:"夜 — KLのストリートフード街。"},
+  {day:"Day 5",type:"attraction",lat:3.1574693,lng:101.7115639,name:"ペトロナスツインタワー",note:"王道観光。月曜休。要事前チケット。"},
+  {day:"Day 6",type:"attraction",lat:3.2378844,lng:101.6840385,name:"バトゥ洞窟",note:"午前 — 黄金ムルガン像と272段の階段。"},
+  {day:"Day 6",type:"attraction",lat:3.1443951,lng:101.6976496,name:"Petaling Street(中華街)",note:"午前 — グルメ・ショッピング。"},
+  {day:"Day 7",type:"airport",lat:13.9150135,lng:100.6054823,name:"ドンムアン空港(DMK)",note:"9TY Hotel泊。KL→SIN→BKK移動日。"},
+  {day:"Day 8-9",type:"hotel",lat:12.9379491,lng:100.8828395,name:"Pattaya Beach(パタヤ拠点)",note:"パサデナロッジ(2泊)。"},
+  {day:"Day 9",type:"attraction",lat:12.9728705,lng:100.8891320,name:"Sanctuary of Truth",note:"無釘の木造神殿。パタヤ観光メイン。"},
+  {day:"Day 10",type:"airport",lat:13.6818969,lng:100.7468694,name:"スワンナプーム空港周辺",note:"プライ&ハーブ スワンナプームエアポート泊。"},
+  {day:"Day 10",type:"attraction",lat:13.5386026,lng:100.6225741,name:"ムアンボーラーン",note:"余裕あれば。タイ全土の名所レプリカ。"},
+  {day:"Day 11",type:"attraction",lat:25.033976,lng:121.5645389,name:"台北101",note:"午後 — 展望台とショッピングモール。"},
+  {day:"Day 11",type:"attraction",lat:25.0446664,lng:121.5063096,name:"西門町",note:"若者の街。ショッピング・グルメ。"},
+  {day:"Day 11",type:"attraction",lat:25.0884972,lng:121.5243504,name:"士林夜市",note:"夜 — 台湾最大級の夜市。深夜便前に。"},
+  {day:"Day 12",type:"airport",lat:35.8990670,lng:128.6391590,name:"大邱国際空港(TAE)",note:"深夜 — TW664で05:25着。乗継待ち約5h。"},
+];
+
+let _mapInited = false;
+function initMap() {
+  const map = L.map('map', { scrollWheelZoom: true }).setView([15, 110], 4);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap © CARTO', subdomains: 'abcd', maxZoom: 19
+  }).addTo(map);
+  const bounds = [];
+  pins.forEach(p => {
+    const colors = { airport: 'var(--sky)', hotel: 'var(--gold)', attraction: 'var(--rust)' };
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="background:${colors[p.type]};color:${p.type==='hotel'?'#0f0e0c':'white'};border:2px solid #f5f0e8;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.65rem;box-shadow:0 2px 6px rgba(0,0,0,.3);font-family:'DM Mono',monospace;">${p.day.split('-')[0].replace('Day ','').replace('/12','↻')}</div>`,
+      iconSize: [30, 30], iconAnchor: [15, 15]
+    });
+    L.marker([p.lat, p.lng], { icon }).addTo(map)
+      .bindPopup(`<div style="font-family:'Noto Sans JP',sans-serif;"><span style="font-family:'DM Mono',monospace;font-size:.6rem;background:#0f0e0c;color:#e8d08a;padding:.1em .5em;border-radius:3px;">${p.day}</span><div style="font-weight:700;font-size:.88rem;margin:.3rem 0 .2rem;">${p.name}</div><div style="font-size:.73rem;color:#555;">${p.note}</div></div>`);
+    bounds.push([p.lat, p.lng]);
+  });
+  map.fitBounds(bounds, { padding: [40, 40] });
+  window._mapInited = true;
+}
+
+// ── SHARE ──
+function copyLink() {
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    const m = document.getElementById('copy-msg');
+    m.classList.add('show');
+    setTimeout(() => m.classList.remove('show'), 2000);
+  }).catch(() => alert('URLバーから手動でコピーしてください。'));
+}
+function shareNative() {
+  const d = { title: 'アジア周遊旅行 2026', text: '12日間・5カ国のアジア周遊プラン', url: window.location.href };
+  if (navigator.share) navigator.share(d).catch(() => {});
+  else { copyLink(); alert('リンクをコピーしました。LINEやメッセージに貼り付けて送ってください。'); }
+}
+</script>
+</body>
+</html>
